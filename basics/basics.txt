@@ -1,0 +1,335 @@
+-> nil e false são sempre falsos
+
+OPERADORES
++, -, *, /
+div(x, y)	=> divisão inteira
+rem(x, y)	=> resto da divisão
+
+=> boolenaos: 
+	||, &&, !
+	and, or, not	=> primeiro argumento sempre deve ser booleano (true ou false)
+ 
+
+COMPARAÇÕES
+==, !=, ===, !=
+>, >=, <, <=
+
+	-> === -> strict comparision (2 == 2.0, mas 2 !== 2.0)
+
+-> quaisquer dois tipos podem ser comparados (útil para sorting)
+number < atom < reference < function < port < pid < tuple < map < list < bitstring
+
+
+INTERPOLAÇÃO DE STRINGS
+	name = "Caio"
+	"Hello #{name}"		=> "Hello Caio"
+
+CONCATENAÇÃO DE STRINGS (<>)
+	name = "aaa"
+	"Hello " <> name	=> "Hello aaa"
+
+
+------------------------------------
+
+Listas: coleção de valores (múltiplos tipos)
+	lista = [3.14, "Caio", :atomo]
+
+-> implementada com linked-list (prepending mais rápido que append
+	prepend: ["valor" | lista]	=> ["valor", 3.14, ...]
+	append:  lista ++ ["valor"]	=> [3.14, ..., "valor"]
+
+-> concatenando listas (++)
+	[1, 2] ++ [3, 4, 5]	=> [1, 2, 3, 4, 5]
+
+-> removendo elemento de lista (--)	
+	[1, 2, 2, 3, 2, 3] -- [1, 2, 3, 2]	=> [2, 3]
+	-> faz remoção com strict comparision
+		[2] -- [2.0]	=> [2]
+		[2.0] -- [2.0]  => []
+
+-> head: hd
+	hd [1, 2, 3]  => 1
+-> tail: tl
+	tl [1, 2, 3]  => [2, 3]
+
+------------------------------------
+
+Tuplas: armazenados continuamente na memória (acessar tamanho mais rápido, mas modificação mais custosa (precisa copiar inteira a antiga para a memória))
+	tupla = {3.14, :teste, "algo"}
+	-> usadas para retornar informações adicionais de funções
+
+------------------------------------
+
+Lista de keywords ("dicionário"): listas e mapas de keywords são as coleções associativas;  -> {}
+	-> primeiro elemento: atom
+	-> 3 características:
+		keys são átomos
+		keys são ordenadas
+		keys não precisam ser únicas
+	-> usadas para passar opções para funções
+
+	[foo: "bar", hello:"world"]
+	[{:foo, "bar}, {:hello, "world}]   => retorna o mesmo que linha anterior
+
+------------------------------------
+
+Maps: "go-to" key-value  -> %{}
+	-> permite qualquer tipo de keys e são não-ordenados
+
+	map = %{:foo => "bar", "hello" => :world}
+		map[:foo] => "bar
+		map["hello"] => world
+
+-> pode ter variáveis como keys
+	key = "hello"
+	%{key => "world"}  => %{"hello" => "world"}
+
+-> caso adicione key duplicada, vai sobrescrever com o novo valor
+-> com mapas onde as keys são atoms, pode usar sintaxe sem ":" antes
+	%{foo: "bar", hello: "world"}
+	== %{:foo => "bar", "hello" => :world}   => true
+
+	-> para acessar, pode fazer usando a sintaxe normal ou
+		map.hello	=> "world"
+
+-> sintaxe prórpria para atualizar valor (cria um novo mapa)
+	map = %{foo: "bar", hello: "world"}
+	map = %{map | foo: "baz}
+	-> funciona para quando a key já existe (senão dá KeyError)
+-> adicionar valor com nova key:
+	Map.put(map, :foo, "baz")
+
+------------------------------------
+
+Enum (módulo)
+
+- all? : toda a coleção deve resultar em true, senão retorna false
+	Enum.all?(["foo", "bar", "hello"], fn(s) -> String.length(s) == 3 end)
+		=> false
+	Enum.all?(["foo", "bar", "hello"], fn(s) -> String.length(s) > 1 end)
+		=> true
+	
+- any? : retorna true se pelo menos um for verdadeiro
+
+- chunk_every : separar coleção em pedaços
+	Enum.chunk_every([1, 2, 3, 4, 5, 6], 2) 	=> [[1, 2], [3, 4], [5, 6]]
+
+- chunk_by : agrupar coleção baseado em algo diferente de tamanho
+	-> recebe enumeráve e funçõa, quando o retorno dela muda, um novo grupo é iniciado e começa a criação do próximo
+
+	Enum.chunk_by(["one" , "two", "three", "four", "five"], fn(x) -> String.length(x) end)
+		=> [["one", "two"], ["three"], ["four", "five"]]
+
+	Enum.chunk_by(["one", "two", "three", "four", "five", "six"], fn(x) -> String.length(x) end)
+		=> [["one", "two"], ["three"], ["four", "five"], ["six"]]
+	
+- map_every : aplica a função a cada n, também sempre operando no primeiro elemento
+	Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8], 3, fn x -> x + 1000 end)
+		=> [1001, 2, 3, 1004, 5, 6, 1007, 8]
+
+- each : itera a coleção sem produzir uma nova (aplicando a função apenas)
+	Enum.each(["one", "two", "three"], fn(s) -> IO.puts(s) end)
+		=> printa todos os elementos da lista
+		=> :ok   (retorna o átomo :ok)
+
+- map : aplica função a cada item e produz nova coleção
+	Enum.map([0, 1, 2, 3] fn(x) -> x - 1 end)
+		=> [-1, 0, 1, 2]
+
+- min : encontra menor valor na coleção
+	Enum.min([...])
+	Enum.min([...], function)  -> caso lista vazia, função produz menor valor
+
+- max: maior valor na coleção
+	Enum.max([...])   
+	max/2 faz como min/2
+
+- filter: filtrar coleção para incluir apenas os elementos que dão true
+	Enum.filter([1, 2, 3, 4] fn(x) -> rem(x, 2) == 0 end) 
+		=> [2, 4]
+
+- reduce: coleção vira um valor; dá um acumulador a ser passado para a função; se não der acumulador, o primeiro elemento do enumerável é usando
+	Enum.reduce([1, 2, 3] 10, fn(x, acc) -> x + acc end)
+		=> 16
+	Enum.reduce([1, 2, 3], fn(x, acc) -> x + acc end)
+		=> 6
+	Enum.reduce(["a", "b", "c", "1", fn(x, acc) -> x <> acc end])
+		=> "cba1"
+
+- sort: sort/1 
+
+VOLTAR A ESSA PARTE
+
+------------------------------------
+
+Pattern matching
+
+- Match operator (=): operador "=" é match operator ("como o sinal de igual em álgebra")
+
+	x = 1
+	1 = x	=> 1
+	2 = x	=> MathcError
+
+	# listas
+	lista = [1, 2, 3]
+	[1, 2, 3] = lista 	=> [1, 2, 3]
+	[] = lista			=> MatchError
+
+	[1 | tail] = list	=> [1, 2, 3]
+	tail				=> [2, 3]
+	[2 | _] = lista		=> MatchError
+
+	# tuplas
+	{:ok, value} = {:ok, "Successful!"}
+	value		=> "sucessful!"
+	{:ok, value} = {:error}		=> matchError
+
+- pin operator: "=" faz atribuição quando o lado esquerdo inclui variável
+	-> para quando não quer isso, usa ^
+	-> quando dá pin em variável
+
+------------------------------------
+
+Control Structures
+
+- if e unless
+
+-> apenas nil e false são falsey
+
+	if String.valid?("Hello") do
+		"Valid string"
+	else
+		"Invalid string"
+	end
+
+	if "a string" do
+		"Truthy"
+	end
+
+-> unless é como if/2 mas funciona com o negativo
+	unless is_integer("hello") do
+		"not an int"
+	end
+		=> retorna o "not an int"
+
+- case (case/2):
+	case {:ok, "Hello World"} do
+		{:ok, result} -> result
+		{:error} -> "error!"
+		_ -> "catch all"		# importante incluir para parar o case
+	end
+-> para fazer case usando variável já pronta, usar o pin ^
+	pie = 3.14
+	case "sim" do
+		^pie -> "nao sobrescreve"
+		pie -> "sobrescrito"
+	end
+		=> retorna "sobrescrito"
+-> suporte para guardas:
+	case {1, 2, 3} do
+		{1, x, 3} when x > 0 ->
+			"match"
+		_ ->
+			"not match"
+	end
+	=> "match"
+
+- cond: match condições e não valores ("else if")
+	cond do
+		2 + 2 == 5 ->
+			"falso"
+		2 * 2 == 3 ->
+			"falso tambem"
+		1 + 1 == 2 ->
+			"verdadeiro"
+	end
+		=> "verdadeiro"
+-> dá erro caso não tenha nenhum match; pode definir condição com true
+	cond do
+		7 + 1 == 0 -> "incorreto"
+		true -> "catch"
+	end
+
+- with: 
+
+
+------------------------------------
+
+Funções
+
+- funções anonimas: inicia com fn e termina com end; parametros e corpo começa com ->
+	sum = fn (a, b) -> a + b end
+	sum.(2, 3)	=> 5
+-> "&" shorthand: argumentos serão &1, &2, &3, ...
+	sum = &(&1 + &2)
+	sum.(2, 3)	=> 5
+
+
+- pattern matching: verificar todas possibilidades e selecionar a primeira para rodar
+	handle_result = fn
+		{:ok, result} -> IO.puts "Handling result..."
+		{:ok, _} -> "never run"
+		{:error} -> IO.puts "Error!"
+	end
+
+	some_result = 1
+	handle_result.({:ok, some_result})	=> "Handling result..." \n :ok
+	handle_result.({error})	=> "Error" \n :ok
+
+
+- named functions: definidas dentro de módulos usando "def"
+	-> disponíveis para outros módulos usarem
+
+	defmodule Greeter do
+		def hello(name) do
+			"Hello, " <> name
+		end
+	end
+
+	Greeter.hello("Caio")		=> "Hello, Caio"
+-> pode usar pattern matching também
+	defmodule Lenght do
+		def of([]), do: 0
+		def of([_ | tail]), do: 1 + of(tail)
+	end
+
+	Lenght.of []	=> 0
+	Length.of [1, 2, 3] => 3
+
+-> pode ter diferentes implementações da função dependendo da quantidade de argumentos
+	defmodule Greeter2 do
+		def hello(), do: "Hello!" # hello/0
+		def hello(name), do: "Hello, " <> name  # hello/1
+		def hello(name1, name2), do: "Hello, " <> name1, " and " <> name2 # hello/2
+	
+- funções privadas: defp
+
+- guards: 
+	defmodule Greeter do
+		def hello(names) when is_list(names) do
+			names = Enum.join(names, ", ")
+			hello(names)
+		
+		def hello(name) when is_binary(name) do
+			phrase() <> name
+
+		defp phrase, do: "Hello, "
+	end
+
+	Greeter.hello ["Caio", "Alice"] => "Hello, Caio, Alice"
+
+- default arguments: argument \\ value
+	defmodule Greeter do
+		def hello(name, language_code \\ "pt-br") do
+			phrase(language_code) <> name
+		
+		defp phrase("pt-br"), do: "Ola, "
+		defp phrase("en"), do: "Hello, "
+
+	end
+
+-> pode ter header da função para definir os argumentos e possíveis valores padrão
+	def func(var, var2, ..., varn \\ "default")
+
+	def func(...) ...
+
